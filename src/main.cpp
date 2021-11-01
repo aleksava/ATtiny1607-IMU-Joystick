@@ -18,7 +18,7 @@ void loop() {
   imu.readAcc();
   imu.readGyro();
   Serial.printf("\r\nAcc X,Y,Z: %i\t%i\t%i", imu.getAccX(), imu.getAccY(), imu.getAccZ());
-  delay(1000);
+  delay(1100);
 
   // // Calculating Roll and Pitch from the accelerometer data
   // accAngleX = (atan(AccY / sqrt(pow(AccX, 2) + pow(AccZ, 2))) * 180 / PI) - 0.58; // AccErrorX ~(0.58) See the calculate_IMU_error()custom function for more details
