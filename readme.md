@@ -18,6 +18,7 @@ MPU:
 - Kalibrering
 - Lese data
 - konvertere til styredata
+- Lage en integrasjons-funksjon for gyroskopet, slik at vi kan styre lineærmotor fra side til side. 
 SPI:
 - Sende joystick data
 Timer:
@@ -25,3 +26,10 @@ Timer:
 Interrupt:
 - vekke enheten når interrupt på pin
 - kjøre datainnhenting fra MPU (timer)
+
+
+
+Inspo:
+https://create.arduino.cc/projecthub/MissionCritical/mpu-6050-tutorial-how-to-program-mpu-6050-with-arduino-aee39a
+https://electronoobs.com/eng_arduino_tut76.php
+https://howtomechatronics.com/tutorials/arduino/arduino-and-mpu6050-accelerometer-and-gyroscope-tutorial/
