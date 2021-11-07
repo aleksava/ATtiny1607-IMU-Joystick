@@ -57,7 +57,7 @@
                 ]
             },
             "defines": [
-                "PLATFORMIO=50202",
+                "PLATFORMIO=50203",
                 "ARDUINO_attinyxy7",
                 "MILLIS_USE_TIMERA0",
                 "UARTBAUD5V",
