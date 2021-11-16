@@ -7,17 +7,18 @@
 
 #define MPU_address 0x68
 
-#define ACC_SCALE2g         16384.0
-#define ACC_SCALE4g         8192.0
-#define ACC_SCALE8g         4096.0
-#define ACC_SCALE16g        2048.0
+#define ACC_SCALE2g         8192.0
+#define ACC_SCALE4g         4096.0
+#define ACC_SCALE8g         2048.0
+#define ACC_SCALE16g        1024.0
+
 
 #define GYRO_SCALE250       131.0
 #define GYRO_SCALE500       65.5
 #define GYRO_SCALE1000      32.8
 #define GYRO_SCALE2000      16.4
 
-#define DEBUG               0
+//#define DEBUG               
 
 void MPU::init(void)
 {
@@ -59,6 +60,34 @@ void MPU::wake(void)
     Wire.endTransmission(true);
 }
 
+void MPU::reset(void)
+{
+    accX = 0;
+    accY = 0;
+    accZ = 0;
+    accXerr = 0;
+    accYerr = 0;
+    accZerr = 0;
+    accangleX = 0;
+    accangleY = 0;
+    gyroX = 0;
+    gyroY = 0;
+    gyroZ = 0;
+    gyroXerr = 0;
+    gyroYerr = 0;
+    gyroZerr = 0;
+    gyroangleX = 0;
+    gyroangleY = 0;
+    pitch = 0;
+    roll = 0;
+    yaw = 0;
+    previous_time_ms = 0;
+    current_time_ms = 0;
+    elapsedTime = 0;
+    calibration_done = 0;
+
+}
+
 void MPU::readAcc(void){
     Wire.beginTransmission(MPU_address);
     Wire.write(0x3B);
@@ -71,22 +100,20 @@ void MPU::readAcc(void){
     /* Correct for accErrors */
     if(calibration_done)
     {
-        accX += accXerr;
-        accY += accYerr;
-        accZ += accZerr;
-
-        accangleX = ((atan((accY) / sqrt(pow((accX), 2) + pow((accZ), 2))) * 180 / PI)) + accXerr;
-        accangleY = ((atan(-1 * (accX) / sqrt(pow((accY), 2) + pow((accZ), 2))) * 180 / PI)) + accYerr;
+        // accangleX = ((atan((accY) / sqrt(pow((accX), 2) + pow((accZ), 2))) * 180 / PI)) - accXerr;
+        // accangleY = ((atan(-1 * (accX) / sqrt(pow((accY), 2) + pow((accZ), 2))) * 180 / PI)) - accYerr;
+        accangleY = (acos(accX/(sqrt(pow(accX,2)+pow(accZ,2)))) * 180/ PI) - accYerr - 180;
     }
-
-    if(DEBUG && calibration_done)
-    {
-        Serial.print("AccX: "); Serial.print(accX,2);
-        Serial.print("\tAccY: "); Serial.print(accY,2);
-        Serial.print("\tAccZ: "); Serial.println(accZ,2);
-        Serial.print("AccangleX: "); Serial.print(accangleX,2);
-        Serial.print("\tAccangleY: "); Serial.println(accangleY,2);
-    }
+    #ifdef DEBUG
+        if(calibration_done)
+        {
+            Serial.print("AccX: "); Serial.print(accX,2);
+            Serial.print("\tAccY: "); Serial.print(accY,2);
+            Serial.print("\tAccZ: "); Serial.println(accZ,2);
+            Serial.print("AccangleX: "); Serial.print(accangleX,2);
+            Serial.print("\tAccangleY: "); Serial.println(accangleY,2);
+        }
+    #endif
 }
 
 void MPU::readGyro(void){
@@ -111,30 +138,39 @@ void MPU::readGyro(void){
         gyroangleX += gyroX * elapsedTime;
         gyroangleY += gyroY * elapsedTime;
     }
-
-    if(DEBUG && calibration_done)
-    {
-        Serial.print("gyroX: "); Serial.print(gyroX,2);
-        Serial.print("\tgyroY: "); Serial.print(gyroY,2);
-        Serial.print("\tgyroZ: "); Serial.println(gyroZ,2);
-        Serial.print("gyroAngleX: "); Serial.print(gyroangleX,2);
-        Serial.print("\tgyroAnlgeY: "); Serial.println(gyroangleY,2);
-    }
+    #ifdef DEBUG
+        if(calibration_done)
+        {
+            Serial.print("gyroX: "); Serial.print(gyroX,2);
+            Serial.print("\tgyroY: "); Serial.print(gyroY,2);
+            Serial.print("\tgyroZ: "); Serial.println(gyroZ,2);
+            Serial.print("gyroAngleX: "); Serial.print(gyroangleX,2);
+            Serial.print("\tgyroAnlgeY: "); Serial.println(gyroangleY,2);
+        }
+    #endif
 }
 
 void MPU::calculate_roation(void)
 {
-    yaw     += gyroZ * elapsedTime;
-    roll    = 0.96* gyroangleX + 0.04 * accangleX;
-    pitch   = 0.96* gyroangleY + 0.04 * accangleY;
+    dyaw = gyroX * elapsedTime;
+    droll = gyroY * elapsedTime;
+    threshold = 0.05;
 
-    if(DEBUG && calibration_done)
+    if (abs(dyaw) > threshold)
     {
-        Serial.print("Pitch: ");    Serial.print(pitch,2);
-        Serial.print("\tRoll: ");     Serial.print(roll,2);
-        Serial.print("\tYaw: ");      Serial.println(yaw,2);
+        yaw += dyaw;
     }
 
+    roll = accangleY;
+    
+    #ifdef DEBUG
+        if(calibration_done)
+        {
+            Serial.print("Pitch: ");    Serial.print(pitch,2);
+            Serial.print("\tRoll: ");     Serial.print(roll,2);
+            Serial.print("\tYaw: ");      Serial.println(yaw,2);
+        }
+    #endif
 }
 
 float MPU::getPitch(void)
@@ -160,7 +196,8 @@ void MPU::calibrate(void)
     for(uint8_t i = 0; i < calibration_reads; i++){
         readAcc();
         accXerr += ((atan((accY) / sqrt(pow((accX), 2) + pow((accZ), 2))) * 180 / PI));
-        accYerr += ((atan(-1 * (accX) / sqrt(pow((accY), 2) + pow((accZ), 2))) * 180 / PI));
+        // accYerr += ((atan(-1 * (accX) / sqrt(pow((accY), 2) + pow((accZ), 2))) * 180 / PI));
+        accangleY = (acos(accX/(sqrt(pow(accX,2)+pow(accZ,2)))) * 180/ PI) - accYerr - 180;
     }
     accXerr = accXerr / calibration_reads;
     accYerr = accYerr / calibration_reads;
@@ -177,8 +214,7 @@ void MPU::calibrate(void)
     gyroYerr = gyroYerr / calibration_reads;
     gyroZerr = gyroZerr / calibration_reads;
 
-    if(DEBUG)
-    {
+    #ifdef DEBUG
         Serial.print("AccErrorX: ");
         Serial.print(accXerr);
         Serial.print("\tAccErrorY: ");
@@ -189,7 +225,7 @@ void MPU::calibrate(void)
         Serial.print(gyroYerr);
         Serial.print("\tGyroErrorZ: ");
         Serial.println(gyroZerr);
-    }
+    #endif
     calibration_done = 1;
 }
 

@@ -8,6 +8,8 @@ class MPU{
     float gyroXerr,gyroYerr,gyroZerr;
     float gyroangleX,gyroangleY;
     float pitch, roll, yaw;
+    float dpitch, droll, dyaw;
+    float threshold;
     uint16_t previous_time_ms;
     uint16_t current_time_ms;
     float elapsedTime;
@@ -24,4 +26,5 @@ class MPU{
     float getYaw(void);
     void sleep(void);
     void wake(void);
+    void reset(void);
 } ;
