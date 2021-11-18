@@ -4,12 +4,10 @@ class MPU{
     float accX,accY,accZ;
     float accXerr,accYerr,accZerr;
     float accangleX, accangleY;
-    float gyroX,gyroY,gyroZ;
-    float gyroXerr,gyroYerr,gyroZerr;
+    float gyroX,gyroY;
+    float gyroXerr,gyroYerr;
     float gyroangleX,gyroangleY;
-    float pitch, roll, yaw;
-    float dpitch, droll, dyaw;
-    float threshold;
+    float pitch, roll;
     uint16_t previous_time_ms;
     uint16_t current_time_ms;
     float elapsedTime;
@@ -23,7 +21,6 @@ class MPU{
     void print_orientation(void);
     float getPitch(void);
     float getRoll(void);
-    float getYaw(void);
     void sleep(void);
     void wake(void);
     void reset(void);

@@ -72,15 +72,12 @@ void MPU::reset(void)
     accangleY = 0;
     gyroX = 0;
     gyroY = 0;
-    gyroZ = 0;
     gyroXerr = 0;
     gyroYerr = 0;
-    gyroZerr = 0;
     gyroangleX = 0;
     gyroangleY = 0;
     pitch = 0;
     roll = 0;
-    yaw = 0;
     previous_time_ms = 0;
     current_time_ms = 0;
     elapsedTime = 0;
@@ -100,9 +97,8 @@ void MPU::readAcc(void){
     /* Correct for accErrors */
     if(calibration_done)
     {
-        // accangleX = ((atan((accY) / sqrt(pow((accX), 2) + pow((accZ), 2))) * 180 / PI)) - accXerr;
-        // accangleY = ((atan(-1 * (accX) / sqrt(pow((accY), 2) + pow((accZ), 2))) * 180 / PI)) - accYerr;
-        accangleY = (acos(accX/(sqrt(pow(accX,2)+pow(accZ,2)))) * 180/ PI) - accYerr - 180;
+        accangleX = ((atan((-accZ) / sqrt(pow((-accY), 2) + pow((accX), 2))) * 180 / PI)) - accXerr;
+        accangleY = ((atan((accY) / sqrt(pow((-accZ), 2) + pow((accX), 2))) * 180 / PI)) - accYerr;
     }
     #ifdef DEBUG
         if(calibration_done)
@@ -123,17 +119,15 @@ void MPU::readGyro(void){
     Wire.beginTransmission(MPU_address);
     Wire.write(0x43);
     Wire.endTransmission(false);
-    Wire.requestFrom(MPU_address, 6, true);
+    Wire.requestFrom(MPU_address, 4, true);
     gyroX = (Wire.read() << 8 | Wire.read()) / GYRO_SCALE250;
     gyroY = (Wire.read() << 8 | Wire.read()) / GYRO_SCALE250;
-    gyroZ = (Wire.read() << 8 | Wire.read()) / GYRO_SCALE250;
 
     /* Correct for gyroErrors */
     if(calibration_done)
     {
         gyroX -= gyroXerr;
         gyroY -= gyroYerr;
-        gyroZ -= gyroZerr;
 
         gyroangleX += gyroX * elapsedTime;
         gyroangleY += gyroY * elapsedTime;
@@ -143,7 +137,6 @@ void MPU::readGyro(void){
         {
             Serial.print("gyroX: "); Serial.print(gyroX,2);
             Serial.print("\tgyroY: "); Serial.print(gyroY,2);
-            Serial.print("\tgyroZ: "); Serial.println(gyroZ,2);
             Serial.print("gyroAngleX: "); Serial.print(gyroangleX,2);
             Serial.print("\tgyroAnlgeY: "); Serial.println(gyroangleY,2);
         }
@@ -152,15 +145,8 @@ void MPU::readGyro(void){
 
 void MPU::calculate_roation(void)
 {
-    dyaw = gyroX * elapsedTime;
-    threshold = 0.05;
-
-    if (abs(dyaw) > threshold)
-    {
-        yaw += dyaw;
-    }
-
-    roll = accangleY;
+    roll = 0.96 * gyroangleX + 0.04 * accangleX;
+    pitch = 0.96 * gyroangleY + 0.04 * accangleY;
     
     #ifdef DEBUG
         if(calibration_done)
@@ -182,21 +168,15 @@ float MPU::getRoll(void)
     return roll;
 }
 
-float MPU::getYaw(void)
-{
-    return yaw;
-}
-
 void MPU::calibrate(void)
 {
     calibration_done = 0;
-    accXerr, accYerr, gyroXerr, gyroYerr, gyroZerr =  0;
+    accXerr, accYerr, gyroXerr, gyroYerr =  0;
     uint8_t calibration_reads = 200;
     for(uint8_t i = 0; i < calibration_reads; i++){
         readAcc();
         accXerr += ((atan((accY) / sqrt(pow((accX), 2) + pow((accZ), 2))) * 180 / PI));
-        // accYerr += ((atan(-1 * (accX) / sqrt(pow((accY), 2) + pow((accZ), 2))) * 180 / PI));
-        accangleY = (acos(accX/(sqrt(pow(accX,2)+pow(accZ,2)))) * 180/ PI) - accYerr - 180;
+        //accYerr += ((atan(-1 * (accX) / sqrt(pow((accY), 2) + pow((accZ), 2))) * 180 / PI));
     }
     accXerr = accXerr / calibration_reads;
     accYerr = accYerr / calibration_reads;
@@ -205,13 +185,11 @@ void MPU::calibrate(void)
         readGyro();
         gyroXerr += gyroX;
         gyroYerr += gyroY;
-        gyroZerr += gyroZ;
     }
 
     /* Normalize the error */
     gyroXerr = gyroXerr / calibration_reads;
     gyroYerr = gyroYerr / calibration_reads;
-    gyroZerr = gyroZerr / calibration_reads;
 
     #ifdef DEBUG
         Serial.print("AccErrorX: ");
@@ -222,8 +200,6 @@ void MPU::calibrate(void)
         Serial.print(gyroXerr);
         Serial.print("\tGyroErrorY: ");
         Serial.print(gyroYerr);
-        Serial.print("\tGyroErrorZ: ");
-        Serial.println(gyroZerr);
     #endif
     calibration_done = 1;
 }
@@ -233,5 +209,4 @@ void MPU::print_orientation(void)
 {
     Serial.print("Pitch: ");    Serial.print(pitch,2);
     Serial.print("\tRoll: ");       Serial.print(roll,2);
-    Serial.print("\tYaw: ");      Serial.println(yaw,2);
 }

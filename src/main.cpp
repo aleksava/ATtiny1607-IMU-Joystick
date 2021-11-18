@@ -5,17 +5,13 @@
 #include <avr/interrupt.h>
 #include "timer.h"
 
-/* Todo: figure out how to send the controller data over SPI;
-* should i have the data as uint8_t 0-255 and convert after, or try to send it as a float?
-* How should the master operate in order for the slave to send all the desired data?
-* 2 floats + 1 bool = 2*4 bytes + 1 byte = 9 bytes; */
 
+//#define DEBUG             
 #define BUTTON            PIN_PB3
-#define BUTTON_RESET_TIME 3000
+#define BUTTON_RESET_TIME 2000
 
 uint8_t is_long_press(int8_t button);
 int8_t mapData(float x, float in_min, float in_max, float out_min, float out_max); 
-
 
 
 int lastState = LOW;  // the previous state from the input pin
@@ -25,7 +21,6 @@ unsigned long releasedTime = 0;
 bool isPressing = false;
 bool isLongDetected = false;
 uint8_t spiID = 0;
-
 MPU mpu6050;
 int8_t writeData[3] = {0, 0, 0};
 
@@ -86,12 +81,18 @@ void loop() {
     //mpu6050.print_orientation();
 
     /* Writedata structure 
-    0. yaw  = joystickX: -100 - 100  
-    1. roll = slider: 0 - 100
+    0. Roll = joystickX: -100 - 100  
+    1. Pitch = slider: 0 - 100
     2. Button pressed */
-    writeData[0] = mapData(mpu6050.getYaw(), -70, 70, -100, 100);
-    writeData[1] = mapData(mpu6050.getRoll(), -70, 70, 0, 100);
+    writeData[0] = mapData(mpu6050.getRoll(), -50, 50, -100, 100);
+    writeData[1] = mapData(mpu6050.getPitch(), -50, 50, 0, 100);
     writeData[2] = 1 - digitalRead(BUTTON);
+    #ifdef DEBUG
+    Serial.println(); Serial.println();
+    Serial.print("Data0: ");        Serial.print(writeData[0]);
+    Serial.print("\tData1: ");      Serial.print(writeData[1]);
+    Serial.print("\tData2: ");      Serial.println(writeData[2]);
+    #endif
     timer_handled();
   }
   delay(1);
