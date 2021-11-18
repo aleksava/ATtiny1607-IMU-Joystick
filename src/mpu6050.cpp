@@ -153,7 +153,6 @@ void MPU::readGyro(void){
 void MPU::calculate_roation(void)
 {
     dyaw = gyroX * elapsedTime;
-    droll = gyroY * elapsedTime;
     threshold = 0.05;
 
     if (abs(dyaw) > threshold)

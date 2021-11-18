@@ -24,14 +24,16 @@ unsigned long pressedTime  = 0;
 unsigned long releasedTime = 0;
 bool isPressing = false;
 bool isLongDetected = false;
-
+uint8_t spiID = 0;
 
 MPU mpu6050;
-int8_t writeData[3];
+int8_t writeData[3] = {0, 0, 0};
 
 void setup() {
-  Serial.begin(9600);
+  
+  Serial.begin(115200);
   mpu6050.init();
+  delay(20);
   mpu6050.reset();
   spi_init();
   timer_init(freq64);
@@ -40,19 +42,13 @@ void setup() {
   delay(20);
   mpu6050.calibrate();
   delay(100);
+  Serial.print("*");
 }
 
 void loop() {
-
-  if(is_spi_flag())
-  {
-    spi_print_buf();
-    spi_reset_flag();
-  }
-
   if(is_long_press(digitalRead(BUTTON)))
   {
-    Serial.println("recalibrate");
+    Serial.println(".");
     mpu6050.sleep();
     delay(100);
     mpu6050.reset();
@@ -60,9 +56,30 @@ void loop() {
     mpu6050.calibrate();
   }
 
+  if(!digitalRead(PIN_PC3) && !spiID)
+  {
+    while(!(SPI0.INTFLAGS & SPI_IF_bm));
+    spiID = SPI0.DATA;
+  }
+
+  if(!digitalRead(PIN_PC3) && spiID)
+  {
+    if(spiID == 1)
+    {
+      SPI0.DATA = writeData[0];
+    }
+    if(spiID == 2)
+    {
+      SPI0.DATA = writeData[1];
+    }
+    if(spiID == 3)
+    {
+      SPI0.DATA = writeData[2];
+    }
+    spiID = 0;
+  }
   if(is_timer_triggered())
   {
-    
     mpu6050.readAcc();
     mpu6050.readGyro();
     mpu6050.calculate_roation();
@@ -72,18 +89,12 @@ void loop() {
     0. yaw  = joystickX: -100 - 100  
     1. roll = slider: 0 - 100
     2. Button pressed */
-
     writeData[0] = mapData(mpu6050.getYaw(), -70, 70, -100, 100);
     writeData[1] = mapData(mpu6050.getRoll(), -70, 70, 0, 100);
-    writeData[2] = !digitalRead(BUTTON);
-    //Serial.println(); Serial.println();
-    // Serial.print("Data0: ");        Serial.print(writeData[0]);
-    // Serial.print("\tData1: ");      Serial.print(writeData[1]);
-    // Serial.print("\tData2: ");      Serial.println(writeData[2]);
-    spi_load_buffer(writeData);
+    writeData[2] = 1 - digitalRead(BUTTON);
     timer_handled();
   }
-  //delay(1);
+  delay(1);
 }
 
 
