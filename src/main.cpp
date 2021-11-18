@@ -6,7 +6,7 @@
 #include "timer.h"
 
 
-//#define DEBUG             
+#define DEBUG             
 #define BUTTON            PIN_PB3
 #define BUTTON_RESET_TIME 2000
 

@@ -176,7 +176,7 @@ void MPU::calibrate(void)
     for(uint8_t i = 0; i < calibration_reads; i++){
         readAcc();
         accXerr += ((atan((accY) / sqrt(pow((accX), 2) + pow((accZ), 2))) * 180 / PI));
-        //accYerr += ((atan(-1 * (accX) / sqrt(pow((accY), 2) + pow((accZ), 2))) * 180 / PI));
+        accYerr += ((atan(-1 * (accX) / sqrt(pow((accY), 2) + pow((accZ), 2))) * 180 / PI));
     }
     accXerr = accXerr / calibration_reads;
     accYerr = accYerr / calibration_reads;
@@ -208,5 +208,5 @@ void MPU::calibrate(void)
 void MPU::print_orientation(void)
 {
     Serial.print("Pitch: ");    Serial.print(pitch,2);
-    Serial.print("\tRoll: ");       Serial.print(roll,2);
+    Serial.print("\tRoll: ");   Serial.print(roll,2);
 }
